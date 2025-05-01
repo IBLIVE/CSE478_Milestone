@@ -1,42 +1,90 @@
+/* ─── Base styles ───────────────────────────────────────── */
 body {
-    font-family: 'Segoe UI', sans-serif;
-    margin: 20px;
-    background: #f9f9f9;
-    color: #333;
-  }
-  
-  h2 {
-    margin-bottom: 10px;
-  }
-  
-  label {
-    font-weight: bold;
-    margin-right: 5px;
-  }
-  
-  select {
-    margin-right: 20px;
-    padding: 5px;
-    font-size: 14px;
-  }
-  
-  svg {
-    background: white;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    border-radius: 10px;
-    margin-top: 20px;
-  }
-  
-  .tooltip {
-    position: absolute;
-    text-align: center;
-    padding: 6px 10px;
-    font-size: 13px;
-    background: #222;
-    color: white;
-    border-radius: 4px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-  
+  margin: 0;
+  padding: 20px;
+  font-family: 'Segoe UI', sans-serif;
+
+  /* black-blue gradient */
+  background: linear-gradient(to bottom, rgb(6, 36, 25), #011919);
+  color: #fff;
+
+  /* Center everything vertically in a column */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* Heading */
+h2 {
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+/* ─── Controls row ─────────────────────────────────────── */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+label {
+  font-weight: bold;
+  color: #fff;
+}
+select {
+  padding: 5px;
+  font-size: 14px;
+  background: #001f3f;
+  color: #fff;
+  border: 1px solid #fff;
+  border-radius: 4px;
+}
+
+/* ─── Chart container ──────────────────────────────────── */
+.chart-container {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+svg {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  margin-top: 20px;
+}
+
+/* ─── Pie slice hover ─────────────────────────────────── */
+.slice {
+  transition: stroke-width 150ms ease-in-out;
+  cursor: pointer;
+  stroke: #fff;
+}
+.slice:hover {
+  stroke-width: 4px;
+}
+
+/* ─── Slice labels ─────────────────────────────────────── */
+.slice-label {
+  fill: #fff;
+  font-size: 9px;
+  pointer-events: none;  /* so labels don’t block slice hover */
+}
+
+/* ─── Tooltip ──────────────────────────────────────────── */
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  padding: 6px 10px;
+  font-size: 13px;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  border-radius: 4px;
+  transition: opacity 0.2s;
+  z-index: 10;
+}

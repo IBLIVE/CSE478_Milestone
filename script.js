@@ -10,6 +10,10 @@ const radius = Math.min(width, height) / 2;
 const g = svg.append("g")
     .attr("transform", `translate(${width / 2}, ${height / 2})`);
 const color = d3.scaleOrdinal(d3.schemeCategory10);
+// a full‐circle “empty” arc for the placeholder
+const placeholderArc = d3.arc()
+  .innerRadius(0)
+  .outerRadius(radius);
 
 // Load data
 //d3.csv("cleaned_trade_data.csv")
@@ -29,8 +33,9 @@ d3.csv("subset_trade_data.csv")
     populateDropdown("trade-flow-select", [...new Set(data.map(d => d.TRADE_FLOW))]);
 
     // Wire up change handlers
+    //d3.selectAll("select").on("change", () => updateChart(data));
     d3.selectAll("select").on("change", () => updateChart(data));
-
+ 
     // Initial draw
     updateChart(data);
   })
@@ -41,9 +46,11 @@ d3.csv("subset_trade_data.csv")
 // Helper to populate a <select> and include a default
 function populateDropdown(id, values) {
   const select = d3.select(`#${id}`);
-  // default placeholder
+  // placeholder option, disabled so user must pick another
   select.append("option")
         .attr("value", "")
+        .attr("disabled", true)
+        .attr("selected", true)
         .text("Select…");
   values.sort().forEach(val => {
     select.append("option")
@@ -57,8 +64,23 @@ function updateChart(data) {
     const country   = d3.select("#country-select").property("value");
     const indicator = d3.select("#indicator-select").property("value");
     const flow      = d3.select("#trade-flow-select").property("value");
-    if (!country || !indicator || !flow) return;
-  
+    if (!country || !indicator || !flow) {
+      // 1. clear out anything previously drawn
+      g.selectAll("*").remove();
+    
+      // 2. draw the full-circle placeholder
+      g.append("path")
+        .datum({ startAngle: 0, endAngle: 2 * Math.PI })
+        .attr("d", placeholderArc)
+        .attr("fill", "#f0f0f0")    // light grey fill
+        .attr("stroke", "#ccc")     // subtle border
+        .attr("stroke-width", 1);
+    
+      // 3. no real pie slices yet
+      return;
+    }
+
+    g.selectAll(".no-data").remove();
     // 1. Filter
     const filtered = data.filter(d =>
       d.COUNTRY    === country &&
@@ -88,56 +110,99 @@ function updateChart(data) {
     ).map(([ctry, val]) => ({ country: ctry, value: val }))
      .sort((a,b) => b.value - a.value);
   
-    // 4. Top-5 + Other
+        // 4. Top-5 + Other
     const top5 = rolls.slice(0,5);
     const other = d3.sum(rolls.slice(5), d => d.value);
     if (other > 0) top5.push({ country: "Other", value: other });
-  
+
+    // compute the total for % calculation
+    const total = d3.sum(top5, d => d.value);
+
     // 5. Build pie & arcs
     const pieData = d3.pie().value(d => d.value)(top5);
-    const arcGen  = d3.arc().innerRadius(0).outerRadius(radius);
-    const labelArc= d3.arc().innerRadius(radius*0.5).outerRadius(radius*0.8);
-  
-    // 6. Clear old and draw
+    const arcGen   = d3.arc().innerRadius(0).outerRadius(radius);
+    const labelArc = d3.arc().innerRadius(radius * 0.5).outerRadius(radius * 0.8);
+    // 6. Clear old & draw
     g.selectAll("*").remove();
-  
-    // ensure tooltip div exists
+
+    // ensure tooltip exists
     const tooltip = d3.select(".tooltip");
-  
+
+    // ─── Draw the slices ───────────────────────────────────────────────────────
+    g.selectAll("path.slice")
+    .data(pieData)
+    .enter().append("path")
+      .attr("class", "slice")
+      .attr("d",       arcGen)
+      .attr("fill",    d => color(d.data.country))
+      .attr("stroke",  "#fff")
+      .attr("stroke-width", 1)
+      .on("mouseover", function(event, d) {
+        // thicken stroke
+        d3.select(this)
+          .transition().duration(100)
+          .attr("stroke-width", 4);
+
+        // raw value in tooltip
+        tooltip
+          .style("opacity", 1)
+          .html(`${d.data.country}: ${d.data.value.toLocaleString()}`)
+          .style("left",  (event.pageX + 10) + "px")
+          .style("top",   (event.pageY - 25) + "px");
+      })
+      .on("mousemove", (event) => {
+        tooltip
+          .style("left",  (event.pageX + 10) + "px")
+          .style("top",   (event.pageY - 25) + "px");
+      })
+      .on("mouseout", function() {
+        // restore stroke
+        d3.select(this)
+          .transition().duration(100)
+          .attr("stroke-width", 1);
+        tooltip.style("opacity", 0);
+      });
+
+    // ─── Draw the default labels (Country + %) ─────────────────────────────────
+    g.selectAll("text.slice-label")
+    .data(pieData)
+    .enter().append("text")
+      .attr("class", "slice-label")
+      .attr("transform", d => `translate(${labelArc.centroid(d)})`)
+      .attr("text-anchor", "middle")
+      .attr("dy", "0.35em")
+      .style("font-size", "9px")
+      .style("fill", "#fff")
+      .text(d => {
+        const pct = (d.data.value / total * 100).toFixed(1);
+        return `${d.data.country} (${pct}%)`;
+      });
+    }
     // slices
-    g.selectAll("path")
-      .data(pieData)
-      .join("path")
-        .attr("d", arcGen)
-        .attr("fill", d => color(d.data.country))
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 1)
-        .on("mouseover", (event,d) => {
-          tooltip
-            .style("opacity", 1)
-            .html(`${d.data.value.toLocaleString()}`)
-            .style("left",  (event.pageX + 10) + "px")
-            .style("top",   (event.pageY - 25) + "px");
-        })
-        .on("mousemove", (event) => {
-          tooltip
-            .style("left",  (event.pageX + 10) + "px")
-            .style("top",   (event.pageY - 25) + "px");
-        })
-        .on("mouseout", () => {
-          tooltip.style("opacity", 0);
-        });
-  
-    // labels INSIDE slices
-    g.selectAll("text")
-      .data(pieData)
-      .join("text")
-        .attr("transform", d => `translate(${labelArc.centroid(d)})`)
-        .attr("text-anchor", "middle")
-        .style("font-size", "11px")
-        .style("fill", "#fff")
-        .text(d => d.data.country);
-  }
+    // g.selectAll("path")
+    //   .data(pieData)
+    //   .join("path")
+    //     .attr("d", arcGen)
+    //     .attr("fill", d => color(d.data.country))
+    //     .attr("stroke", "#fff")
+    //     .attr("stroke-width", 1)
+    //     .on("mouseover", (event,d) => {
+    //       tooltip
+    //         .style("opacity", 1)
+    //         .html(`${d.data.value.toLocaleString()}`)
+    //         .style("left",  (event.pageX + 10) + "px")
+    //         .style("top",   (event.pageY - 25) + "px");
+    //     })
+    //     .on("mousemove", (event) => {
+    //       tooltip
+    //         .style("left",  (event.pageX + 10) + "px")
+    //         .style("top",   (event.pageY - 25) + "px");
+    //     })
+    //     .on("mouseout", () => {
+    //       tooltip.style("opacity", 0);
+    //     });
+    // slices
+
   
 
   
