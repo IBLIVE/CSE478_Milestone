@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>International Trade Visualization</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Tooltip container -->
+  <div class="tooltip"></div>
+
+  <h2>Trade Breakdown by Counterpart Country</h2>
+
+  <label>Country:</label>
+  <select id="country-select"></select>
+
+  <label>Indicator:</label>
+  <select id="indicator-select"></select>
+
+  <label>Trade Flow:</label>
+  <select id="trade-flow-select"></select>
+
+  <svg id="pie-chart" width="600" height="500"></svg>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
